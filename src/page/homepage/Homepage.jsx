@@ -294,6 +294,7 @@ const StyleBanner = styled.div`
   justify-content: center;
   align-items: center;
   position: relative;
+  background-size: cover;
 
   h3 {
     position: absolute;
