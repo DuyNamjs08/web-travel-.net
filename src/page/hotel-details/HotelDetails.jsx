@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import ButtonPatern from "../../components/button/ButtonPatern";
 import img1 from "../../assets/image/newsletter.jpg";
@@ -8,10 +8,85 @@ import FsLightbox from "fslightbox-react";
 import { dataBanner } from "../../constant";
 import { FiChevronRight, FiChevronLeft } from "react-icons/fi";
 import Carousel from "../../components/carousel/Carousel";
+import {
+  getHotelDetails,
+  GetCmtTour,
+  getHotel,
+  getListImg,
+} from "../../redux/travelSlice";
+import { useLocation } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { toast } from "react-toastify";
+import Rating from "@mui/material/Rating";
+import TextField from "@mui/material/TextField";
+import { HubConnectionBuilder } from "@microsoft/signalr";
+import * as yup from "yup";
+import { PostMailTour } from "../../redux/travelSlice";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import ReactHtmlParser from "react-html-parser";
 
 function HotelDetails(props) {
   const listImg = [img1, img1, img1, img1, img1, img1, img1];
+  const dispatch = useDispatch();
+  const token = localStorage.getItem("token");
+  const role = true;
+  const [data, setData] = useState([]);
+  const [active, setActive] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [edit, setEdit] = useState(false);
+  const [value, setValue] = useState("");
+  const path = useLocation();
+  const [dataCategory, setDataCategory] = useState([]);
+  const [start, setStart] = useState(0);
+  const [connection, setConnection] = useState(null);
+  const [receivedData, setReceivedData] = useState("");
+  const [dataCmt, setDataCmt] = useState([]);
+  const [listImgs, setListImgs] = useState([]);
   const [toggler, setToggler] = useState(false);
+  const [dataRelease, setDataRelease] = useState([]);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+  const getDataDetails = async (value) => {
+    try {
+      await dispatch(getHotelDetails(value))
+        .unwrap()
+        .then((res) => {
+          // console.log(res);
+          setData(res.resultObj);
+          setValue(res.name);
+        });
+        await dispatch(getHotel({ token }))
+        .unwrap()
+        .then((res) => {
+          setDataRelease(res?.data);
+        });
+      await dispatch(
+        getListImg({ type: "hotel", id: path.pathname.split("/")[2], token })
+      )
+        .unwrap()
+        .then((res) => {
+          // console.log(res);
+          setListImgs(res.data);
+        });
+      await dispatch(GetCmtTour(value))
+        .unwrap()
+        .then((res) => {
+          console.log("res", res);
+          setDataCmt(res.resultObj);
+          // setData(res.resultObj);
+          // setValue(res.name);
+        });
+    } catch (error) {
+      toast.error("có lỗi xảy ra !");
+    }
+  };
+  useEffect(() => {
+    // if (token) {
+    getDataDetails({ token, id: path.pathname.split("/")[2] });
+    // }
+  }, [token, active]);
   return (
     <Container className="container">
       <>
@@ -23,18 +98,30 @@ function HotelDetails(props) {
           <div className="main__img1">
             <div className="item1">
               <div>
-                <img onClick={() => setToggler(!toggler)} src={img1} alt="" />
+                <img
+                  onClick={() => setToggler(!toggler)}
+                  src={listImgs[0]?.img_src}
+                  alt="img"
+                />
               </div>
               <div>
-                <img onClick={() => setToggler(!toggler)} src={img1} alt="" />
+                <img
+                  onClick={() => setToggler(!toggler)}
+                  src={listImgs[1]?.img_src}
+                  alt="img"
+                />
               </div>
             </div>
             <div className="item2">
-              <img onClick={() => setToggler(!toggler)} src={img1} alt="" />
+              <img
+                onClick={() => setToggler(!toggler)}
+                src={listImgs[2]?.img_src}
+                alt="img"
+              />
             </div>
           </div>
           <div className="main__img2">
-            {listImg.slice(0, 4).map((item, index) => {
+            {listImgs?.slice(0, 4)?.map((item, index) => {
               if (index === 3) {
                 return (
                   <div
@@ -49,7 +136,7 @@ function HotelDetails(props) {
                     <h4 style={{ position: "absolute", color: "#fff" }}>
                       +{listImg.length - 4} ảnh
                     </h4>
-                    <img src={item} alt="" />
+                    <img src={item?.img_src} alt="img" />
                   </div>
                 );
               } else {
@@ -60,7 +147,7 @@ function HotelDetails(props) {
             })}
           </div>
         </div>
-        <div className="main2">
+        {/* <div className="main2">
           <div className="form">
             <h5>Thông tin đăng kí</h5>
             <input placeholder="Họ và tên" type="text" name="" id="" />
@@ -76,9 +163,9 @@ function HotelDetails(props) {
             ></textarea>
             <ButtonPatern text={"Gửi yêu cầu"} />
           </div>
-        </div>
+        </div> */}
       </Section1>
-      <Section2>
+      {/* <Section2>
         <h2>Villa Quanh Hà Nội: Morocco Homestay – Tam Đảo</h2>
         <h5>Giá:0</h5>
         <h4>Thông tin khu nghỉ</h4>
@@ -131,15 +218,21 @@ function HotelDetails(props) {
             </tr>
           </tbody>
         </table>
-      </Section2>
+      </Section2> */}
+      <div>
+        <h2 className="my-3">{data?.name}</h2>
+        <img src={data?.background_image} alt="tour" />
+        <h6 className="my-3">Thời gian update : {data?.created_timeStr}</h6>
+      </div>
       <Section3>
         <div className="container my-5">
           <h3 className="my-4">Sản phẩm tương tự</h3>
           <Carousel
             width={"16rem"}
-            data={dataBanner}
+            data={dataRelease}
             iconCarousel={<FiChevronRight />}
             options={settings1}
+            path="hotel"
           />
         </div>
       </Section3>

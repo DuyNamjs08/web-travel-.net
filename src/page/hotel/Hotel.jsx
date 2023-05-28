@@ -67,6 +67,7 @@ function Hotel(props) {
   const [edit, setEdit] = useState(false);
   const [value, setValue] = useState("");
   const [category, setCategory] = useState([]);
+  const [valueSearch, setValueSearch] = useState("");
 
   const handleGetdata = async () => {
     setLoading(true);
@@ -120,6 +121,26 @@ function Hotel(props) {
       console.log(error);
     }
   };
+  const handleSearch = async () => {
+    if (valueSearch) {
+      await dispatch(getCategory({}))
+        .unwrap()
+        .then((res) => {
+          const dataNew = res.data.filter((item) =>
+            item.name.toLowerCase().includes(valueSearch.toLowerCase())
+          );
+          setCategory(dataNew);
+          setLoading(false);
+        });
+    } else {
+      await dispatch(getCategory({}))
+        .unwrap()
+        .then((res) => {
+          console.log("res", res.data);
+          setCategory(res?.data);
+        });
+    }
+  };
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -135,7 +156,11 @@ function Hotel(props) {
       <Section2>
         <div className="main1">
           <div className="mb-2">
-            <SearchInput />
+            <SearchInput
+              handleSearch={handleSearch}
+              setValueSearch={setValueSearch}
+              valueSearch={valueSearch}
+            />
           </div>
           <div className="list">
             <div onClick={() => handleRedata()} className="item">

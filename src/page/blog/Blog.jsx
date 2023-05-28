@@ -101,10 +101,10 @@ function Blog(props) {
       <Section2>
         <div className="main1">
           <div className="mb-2">
-            <SearchInput />
+            {/* <SearchInput /> */}
           </div>
           <div className="list">
-            {lisst.map((item) => (
+            {data.slice(0,10).map((item) => (
               <div className="item" key={item.id}>
                 {item.title}
               </div>
@@ -155,7 +155,7 @@ const Section2 = styled.div`
       }
       padding: 16px 0;
       .item {
-        font-size: 18px;
+        font-size: 16px;
         min-height: 30px;
         cursor: pointer;
         border-bottom: 1px solid #eee;

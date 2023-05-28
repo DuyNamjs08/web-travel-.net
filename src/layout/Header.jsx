@@ -127,7 +127,7 @@ function Header(props) {
         <div className="d-flex align-items-center gap-1">
           <StyleSupport className="mb-0 link">
             <StyleLink>
-              <SearchInput />
+              {/* <SearchInput /> */}
             </StyleLink>
           </StyleSupport>
         </div>

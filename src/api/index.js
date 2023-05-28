@@ -1,4 +1,4 @@
-const BASE_URL = 'http://192.168.1.2:5001'
+const BASE_URL = 'http://192.168.1.3:5001'
 
 // ======================================
 export const API_LOGIN = `${BASE_URL}/api/token/auth`
@@ -15,6 +15,10 @@ export const API_COMMENT = `${BASE_URL}/api/commmon/getcommenttour/`
 export const API_TOUR_IMGS = `${BASE_URL}/api/tours/imagetours`
 export const API_BLOG_IMGS = `${BASE_URL}/api/blog/imageblogs`
 export const API_HOTEL_IMGS = `${BASE_URL}/api/hotel/imagehotels`
+export const API_SEND_MAIL = `${BASE_URL}/api/commmon/contact`
+export const API_SEND_MAIL_TOUR = `${BASE_URL}/api/commmon/resgistertour`
+export const API_IMGAGE = `${BASE_URL}/api/commmon/images`
+
 
 // 
 // export const API_LOGIN = `${BASE_URL}/auth/login`

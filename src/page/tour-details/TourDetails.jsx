@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import ButtonPatern from "../../components/button/ButtonPatern";
 import img1 from "../../assets/image/newsletter.jpg";
@@ -8,13 +8,25 @@ import FsLightbox from "fslightbox-react";
 import { dataBanner } from "../../constant";
 import { FiChevronRight, FiChevronLeft } from "react-icons/fi";
 import Carousel from "../../components/carousel/Carousel";
-import { getTourDetails, GetCmtTour , getTourImg } from "../../redux/travelSlice";
+import {
+  getTourDetails,
+  GetCmtTour,
+  getTour,
+  getTourImg,
+  getListImg,
+} from "../../redux/travelSlice";
 import { useLocation } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import Rating from "@mui/material/Rating";
 import TextField from "@mui/material/TextField";
-import { HubConnectionBuilder } from "@microsoft/signalr";
+import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
+import * as yup from "yup";
+import { PostMailTour } from "../../redux/travelSlice";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import ReactHtmlParser from "react-html-parser";
+import _ from "lodash";
 
 function TourDetails(props) {
   const listImg = [img1, img1, img1, img1, img1, img1, img1];
@@ -33,48 +45,62 @@ function TourDetails(props) {
   const [connection, setConnection] = useState(null);
   const [receivedData, setReceivedData] = useState("");
   const [dataCmt, setDataCmt] = useState([]);
+  const [dataRelease, setDataRelease] = useState([]);
+  const [listImgs, setListImgs] = useState([]);
+  const [valueCmt, setValueCmt] = useState("");
+  const [newCmt, setNewCmt] = useState([]);
+
 
   useEffect(() => {
     const connect = new HubConnectionBuilder()
-      .withUrl("http://192.168.1.2:5001/chat")
+      .withUrl("http://192.168.1.3:5001/chat")
       .withAutomaticReconnect()
       .build();
-    // connect.on("ReceiveMessage", function (user, message) {
-    //   console.log("hello23132131");
-    // });
-    // const idConnection = connect.connectionId
-    // const path = path.pathname.split("/")[2]
-    connect.on("GetMessage", ( message ) => {
-      // console.log("namdz");
-      // console.log("message", message);
-      // setReceivedData(message);
-    });
+
     setConnection(connect);
   }, []);
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+  useEffect(() => {
     if (connection) {
-      // console.log("connection", connection);
       connection
         .start()
-        .then(() => {
-          connection.on("PreviousMessage", (message) => {
-            console.log("namdz");
-            console.log("message", message);
-            setReceivedData(message);
-          });
-        })
-        .catch((error) => console.log(error));
-      console.log("hello");
-      connection.on("PreviousMessage", (message) => {
-        console.log("message", message);
-        // setReceivedData(message);
+        .then(() => console.log("Connection started!"))
+        .catch((err) => console.log("Error while establishing connection :("));
+
+      connection.on("SendMessage", function (id_tour, messageSend, starCount) {
+        // const newObject = {
+        //   id: newCmt.length + 1,
+        //   content: messageSend,
+        //   star: starCount,
+        // };
+        // setNewCmt([...newCmt, newObject]);
       });
     }
   }, [connection]);
-  const sendDataToHub = async () => {
+  console.log("newCmt", newCmt);
+  const sendDataToHub = async (e) => {
+    e.preventDefault();
     if (connection) {
-      console.log("hello");
-      await connection.send("GetMessage", 43, connection.connectionId);
+      if (!valueCmt || !start) {
+        return toast.warning("Bạn cần điền field");
+      }
+      await connection.send(
+        "SendMessage",
+        +path.pathname.split("/")[2],
+        valueCmt,
+        start
+      );
+      const newObject = {
+        id: newCmt.length + 1,
+        content: valueCmt,
+        star: start,
+      };
+      const arr = [...newCmt, newObject].reverse()
+      setNewCmt(arr);
+      setValueCmt("");
+      setStart(0);
     }
   };
 
@@ -87,18 +113,25 @@ function TourDetails(props) {
           setData(res.resultObj);
           setValue(res.name);
         });
-      await dispatch(getTourImg(value))
+      await dispatch(getTour({}))
         .unwrap()
         .then((res) => {
-          console.log(res);
-          // setData(res.resultObj);
-          // setValue(res.name);
+          console.log("res", res.data);
+          setDataRelease(res?.data);
+        });
+      await dispatch(
+        getListImg({ type: "tour", id: path.pathname.split("/")[2], token })
+      )
+        .unwrap()
+        .then((res) => {
+          // console.log(res);
+          setListImgs(res.data);
         });
       await dispatch(GetCmtTour(value))
         .unwrap()
         .then((res) => {
           console.log("res", res);
-          setDataCmt(res.resultObj);
+          setDataCmt(res.resultObj.reverse());
           // setData(res.resultObj);
           // setValue(res.name);
         });
@@ -111,6 +144,39 @@ function TourDetails(props) {
     getDataDetails({ token, id: path.pathname.split("/")[2] });
     // }
   }, [token, active]);
+  const schema = yup.object().shape({
+    name_register: yup.string().required(),
+    address_register: yup.string().required(),
+    phone_register: yup.string().required(),
+    email_register: yup.string().required(),
+  });
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm({
+    resolver: yupResolver(schema),
+  });
+  const onSubmitHandler = async (value) => {
+    setLoading(true);
+    try {
+      await dispatch(
+        PostMailTour({ ...value, token, id_tour: path.pathname.split("/")[2] })
+      )
+        .unwrap()
+        .then((res) => {
+          console.log("res", res.data);
+          setLoading(false);
+          toast.success("Gửi mail thành công");
+        });
+    } catch (error) {
+      setLoading(false);
+      toast.error("Có lỗi xảy ra");
+    }
+    reset();
+  };
+  const handleView = () => {};
   return (
     <Container className="container">
       <>
@@ -122,18 +188,30 @@ function TourDetails(props) {
           <div className="main__img1">
             <div className="item1">
               <div>
-                <img onClick={() => setToggler(!toggler)} src={img1} alt="" />
+                <img
+                  onClick={() => setToggler(!toggler)}
+                  src={listImgs[0]?.img_src}
+                  alt="img"
+                />
               </div>
               <div>
-                <img onClick={() => setToggler(!toggler)} src={img1} alt="" />
+                <img
+                  onClick={() => setToggler(!toggler)}
+                  src={listImgs[1]?.img_src}
+                  alt="img"
+                />
               </div>
             </div>
             <div className="item2">
-              <img onClick={() => setToggler(!toggler)} src={img1} alt="" />
+              <img
+                onClick={() => setToggler(!toggler)}
+                src={listImgs[2]?.img_src}
+                alt="img"
+              />
             </div>
           </div>
           <div className="main__img2">
-            {listImg.slice(0, 4).map((item, index) => {
+            {listImgs?.slice(0, 4)?.map((item, index) => {
               if (index === 3) {
                 return (
                   <div
@@ -148,7 +226,7 @@ function TourDetails(props) {
                     <h4 style={{ position: "absolute", color: "#fff" }}>
                       +{listImg.length - 4} ảnh
                     </h4>
-                    <img src={item} alt="" />
+                    <img src={item?.img_src} alt="img" />
                   </div>
                 );
               } else {
@@ -160,24 +238,61 @@ function TourDetails(props) {
           </div>
         </div>
         <div className="main2">
-          <div className="form">
-            <h5>Thông tin đăng kí</h5>
-            <input placeholder="Họ và tên" type="text" name="" id="" />
-            <input placeholder="Số điện thoại" type="text" name="" id="" />
-            <input placeholder="Số lượng" type="text" name="" id="" />
-            <input placeholder="Email" type="text" name="" id="" />
-            <textarea
-              placeholder="Ghi chú"
-              name=""
-              id=""
-              cols="10"
-              rows="10"
-            ></textarea>
-            <ButtonPatern text={"Gửi yêu cầu"} />
-          </div>
+          <form onSubmit={handleSubmit(onSubmitHandler)}>
+            <div className="form">
+              <h5>Thông tin đăng kí</h5>
+              <input
+                {...register("name_register")}
+                placeholder="Họ tên"
+                type="text"
+              />
+              <p style={{ display: "block", color: "red" }}>
+                {errors.name_register?.message}
+              </p>
+              <input
+                {...register("email_register")}
+                placeholder="Email"
+                type="text"
+              />
+              <p style={{ color: "red" }}>{errors.email_register?.message}</p>
+              <input
+                {...register("address_register")}
+                placeholder="Địa chỉ"
+                type="text"
+              />
+              <p style={{ color: "red" }}>{errors.address_register?.message}</p>
+              <input
+                {...register("phone_register")}
+                placeholder="Phone"
+                type="text"
+              />
+              <p style={{ color: "red" }}>{errors.phone_register?.message}</p>
+              <ButtonPatern type={"submit"} text={"Gửi yêu cầu"} />
+            </div>
+          </form>
         </div>
       </Section1>
-      <Section2>
+      <div>
+        <h2 className="my-3">{data?.name}</h2>
+        <img src={data?.background_image} alt="tour" />
+        <h5 className="my-3">Thông tin</h5>
+        <p> {ReactHtmlParser(data?.infor)}</p>
+        <h5 className="my-3">Giới thiệu</h5>
+        <p> {ReactHtmlParser(data?.intro)}</p>
+        <h5 className="my-3">Giá {data?.price}</h5>
+        <h5 className="my-3">Chính sách</h5>
+        <p> {ReactHtmlParser(data?.policy)}</p>
+        <h5 className="my-3">Lịch trình</h5>
+        <p> {ReactHtmlParser(data?.schedule)}</p>
+        <h5 className="my-3">Chú ý</h5>
+        <p> {ReactHtmlParser(data?.note)}</p>
+        <h5 className="my-3">Bảo hiểm</h5>
+        <p> {ReactHtmlParser(data?.isurance)}</p>
+        <h5 className="my-3">Hướng dẫn viên</h5>
+        <p> {ReactHtmlParser(data?.tour_guide)}</p>
+        <h6 className="my-3">Thời gian update : {data?.created_timeStr}</h6>
+      </div>
+      {/* <Section2>
         <h2>Villa Quanh Hà Nội: Morocco Homestay – Tam Đảo</h2>
         <h5>Giá:0</h5>
         <h4>Thông tin khu nghỉ</h4>
@@ -230,11 +345,7 @@ function TourDetails(props) {
             </tr>
           </tbody>
         </table>
-      </Section2>
-      <div>
-        <button onClick={sendDataToHub}>Send Data to Hub</button>
-        <p>Received data: {receivedData}</p>
-      </div>
+      </Section2> */}
       <div>
         <h3>Đánh giá</h3>
         <Rating
@@ -246,13 +357,6 @@ function TourDetails(props) {
         />
         <div className="chat">
           <form style={{ display: "flex", flexDirection: "column" }}>
-            <TextField
-              id="outlined-basic"
-              label="Tên"
-              variant="outlined"
-              sx={{ maxWidth: "200px" }}
-              size="small"
-            />
             <textarea
               placeholder="Nhập comment"
               className="my-3"
@@ -260,15 +364,49 @@ function TourDetails(props) {
               id=""
               cols="30"
               rows="10"
+              value={valueCmt}
+              onChange={(e) => {
+                setValueCmt(e.target.value);
+              }}
             ></textarea>
-            <ButtonPatern text={"Gửi"} />
+            {/* <ButtonPatern text={"Gửi"} /> */}
+            <button
+              onClick={sendDataToHub}
+              style={{
+                border: "none",
+                width: "60px",
+                background: "#ffd400",
+                color: "white",
+              }}
+            >
+              Gửi
+            </button>
           </form>
         </div>
-        {dataCmt.map((item) => (
+        {newCmt.reverse().slice(0, 6).map((item) => (
           <div key={item.id} className="comments">
             <div className="item__cmt">
               <div className="item1">
-                <h6>Suy Nam</h6>
+                <h6>Anonymous</h6>
+                <Rating
+                  sx={{
+                    fontSize: "16px",
+                  }}
+                  name="read-only"
+                  value={4}
+                  readOnly
+                />
+                <div style={{ color: "#ccc" }}>{item?.created_timeStr}</div>
+              </div>
+              <div className="item2">{item?.content}</div>
+            </div>
+          </div>
+        ))}
+        {dataCmt.slice(0, 6).map((item) => (
+          <div key={item.id} className="comments">
+            <div className="item__cmt">
+              <div className="item1">
+                <h6>Anonymous</h6>
                 <Rating
                   sx={{
                     fontSize: "16px",
@@ -289,10 +427,12 @@ function TourDetails(props) {
           <h3 className="my-4">Sản phẩm tương tự</h3>
           <Carousel
             width={"16rem"}
-            data={dataBanner}
+            data={dataRelease}
             iconCarousel={<FiChevronRight />}
             options={settings1}
             small
+            path="tour"
+            handleView={handleView}
           />
         </div>
       </Section3>

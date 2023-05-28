@@ -26,6 +26,8 @@ function Card({
   role = "3",
   hanldeDelete,
   data,
+  path,
+  id
 }) {
   const dispatch = useDispatch();
   return (
@@ -73,9 +75,9 @@ function Card({
 
         <p className="card-text">{text}</p>
         {iconCarousel ? (
-          <a href="#" className="btn btn-primary">
-            Xem chi tiết {iconCarousel}
-          </a>
+          <Link to={`/${path}`} className="btn btn-primary">
+            Xem thêm {iconCarousel}
+          </Link>
         ) : (
           ""
         )}

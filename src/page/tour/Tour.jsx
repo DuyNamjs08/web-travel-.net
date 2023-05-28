@@ -67,6 +67,7 @@ function Tour(props) {
   const [edit, setEdit] = useState(false);
   const [value, setValue] = useState("");
   const [category, setCategory] = useState([]);
+  const [valueSearch, setValueSearch] = useState("");
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -106,6 +107,7 @@ function Tour(props) {
           const newList = res.data.filter((item) => item.category_id === id);
           console.log("newList", newList);
           setData(newList);
+          setValueSearch("");
         });
     } catch (error) {
       console.log(error);
@@ -123,6 +125,26 @@ function Tour(props) {
       console.log(error);
     }
   };
+  const handleSearch = async () => {
+    if (valueSearch) {
+      await dispatch(getCategory({}))
+        .unwrap()
+        .then((res) => {
+          const dataNew = res.data.filter((item) =>
+            item.name.toLowerCase().includes(valueSearch.toLowerCase())
+          );
+          setCategory(dataNew);
+          setLoading(false);
+        });
+    } else {
+      await dispatch(getCategory({}))
+        .unwrap()
+        .then((res) => {
+          console.log("res", res.data);
+          setCategory(res?.data);
+        });
+    }
+  };
 
   return (
     <Container className="container">
@@ -136,7 +158,11 @@ function Tour(props) {
       <Section2>
         <div className="main1">
           <div className="mb-2">
-            <SearchInput />
+            <SearchInput
+              handleSearch={handleSearch}
+              setValueSearch={setValueSearch}
+              valueSearch={valueSearch}
+            />
           </div>
           <div className="list">
             <div onClick={() => handleRedata()} className="item">

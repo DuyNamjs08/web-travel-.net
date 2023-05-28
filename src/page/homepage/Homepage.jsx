@@ -29,6 +29,9 @@ import { Link } from "react-router-dom";
 
 function Homepage(props) {
   const [show, setShow] = useState(false);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <>

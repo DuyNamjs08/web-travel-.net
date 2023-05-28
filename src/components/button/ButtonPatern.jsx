@@ -1,10 +1,12 @@
 import React from "react";
 import styled from "styled-components";
 
-function ButtonPatern({ text, style }) {
+function ButtonPatern({ text, style , type }) {
+ 
+  
   return (
     <Container>
-      <button style={style}>{text}</button>
+      <button  type={type} style={style}>{text}</button>
     </Container>
   );
 }

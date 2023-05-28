@@ -1,12 +1,61 @@
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import bgImg from "../../assets/image/cau-vang-da-nang.jpg";
 import { FaFacebookSquare, FaInstagram, FaYoutube } from "react-icons/fa";
 import ButtonPatern from "../../components/button/ButtonPatern";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import { useDispatch } from "react-redux";
+import {PostMail } from "../../redux/travelSlice";
+import { toast } from "react-toastify";
+
 function Connect(props) {
+
+  const dispatch = useDispatch();
+  const token = localStorage.getItem("token");
+  const role = true;
+  const [data, setData] = useState([]);
+  const [active, setActive] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [edit, setEdit] = useState(false);
+  const [value, setValue] = useState("");
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+  const schema = yup.object().shape({
+    name_register: yup.string().required(),
+    address_register: yup.string().required(),
+    phone_register: yup.string().required(),
+    email_register: yup.string().required(),
+    
+  });
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm({
+    resolver: yupResolver(schema),
+  });
+  const onSubmitHandler = async(value) => {
+    setLoading(true);
+    try {
+      await dispatch(PostMail({...value ,  token }))
+        .unwrap()
+        .then((res) => {
+          console.log("res", res.data);
+          setLoading(false);
+          toast.success("Gửi mail thành công")
+        });
+    } catch (error) {
+      setLoading(false);
+      toast.error("Có lỗi xảy ra")
+    }
+    reset()
+  }
+  
   return (
     <>
       <div style={{ marginTop: "76px" }}></div>
@@ -15,21 +64,24 @@ function Connect(props) {
       </Banner>
       <Container className="container">
         <div className="main1">
-          <div className="form">
-            <h3>Để lại lời nhắn</h3>
-            <div>
-              <input placeholder="Họ tên" type="text" />
-              <input placeholder="Email" type="text" />
+          <form onSubmit={handleSubmit(onSubmitHandler)}>
+            <div className="form">
+              <h3>Để lại lời nhắn</h3>
+              <div>
+                <input  {...register("name_register")} placeholder="Họ tên" type="text" />
+                <p style={{display:'block' , color: "red" }}>{errors.name_register?.message}</p>
+                <input  {...register("email_register")} placeholder="Email" type="text" />
+                <p style={{ color: "red" }}>{errors.email_register?.message}</p>
+              </div>
+              <div className="my-2">
+                <input  {...register("address_register")} placeholder="Địa chỉ" type="text" />
+                <p style={{ color: "red" }}>{errors.address_register?.message}</p>
+                <input  {...register("phone_register")} placeholder="Phone" type="text" />
+                <p style={{ color: "red" }}>{errors.phone_register?.message}</p>
+              </div>
+              <ButtonPatern type={'submit'} text={"Gửi"} />
             </div>
-            <textarea
-              placeholder="Tin nhắn"
-              name=""
-              id=""
-              cols="30"
-              rows="10"
-            ></textarea>
-            <ButtonPatern text={"Gửi"} />
-          </div>
+          </form>
         </div>
         <div className="main2">
           <h3>Liên hệ với chúng tôi</h3>
@@ -92,23 +144,16 @@ const Container = styled.div`
     .form {
       div {
         display: flex;
-        gap: 20px;
+        flex-direction: column;
+        /* gap: 20px; */
         input {
           flex: 1;
           outline: none;
           box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
           border: 1px solid #ddd;
           padding: 4px 6px;
+          max-width: 240px;
         }
-      }
-      textarea {
-        width: 100%;
-        margin-top: 20px;
-        height: 100px;
-        outline: none;
-        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
-        border: 1px solid #ddd;
-        padding: 4px 6px;
       }
     }
   }
