@@ -53,7 +53,7 @@ function TourDetails(props) {
 
   useEffect(() => {
     const connect = new HubConnectionBuilder()
-      .withUrl("http://192.168.1.3:5001/chat")
+      .withUrl("http://localhost:5001/chat")
       .withAutomaticReconnect()
       .build();
 
